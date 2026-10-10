@@ -1,4 +1,6 @@
 # Generates the app's image assets (run: PYTHONPATH=<pillow> python3 tools/make_images.py).
+# `python3 tools/make_images.py android` instead writes only the Android TV banner and
+# launcher icons under android/app/src/main/res/ (images/ is left untouched).
 # White shapes are tinted at runtime with Poster.blendColor; *.9.png are Roku 9-patches.
 import os, sys
 from PIL import Image, ImageDraw, ImageFont, ImageFilter
@@ -102,7 +104,7 @@ def wash(w, h):
             px[x, y] = tuple(int(INK[i] + (c[i] - INK[i]) * fade) for i in range(3))
     return small.resize((w, h), Image.BICUBIC).filter(ImageFilter.GaussianBlur(24))
 
-def brand(w, h, title_px, with_wash, name):
+def brand(w, h, title_px, with_wash, name, out_dir=OUT):
     img = Image.new("RGB", (w, h), INK)
     if with_wash:
         band = wash(w, int(h * 0.39))
@@ -117,9 +119,51 @@ def brand(w, h, title_px, with_wash, name):
     # ember live dot, top-right of the wordmark
     r = max(4, title_px // 9)
     d.ellipse([x + tw + r, y - r * 0.2, x + tw + 3 * r, y + 1.8 * r], fill=(179, 90, 69))
-    img.save(os.path.join(OUT, name))
+    img.save(os.path.join(out_dir, name))
 
-if __name__ == "__main__":
+ANDROID_RES = "android/app/src/main/res"
+
+def launcher(n, round_=False):
+    """Short mark for small sizes: white "F" + ember dot on an ink tile with a soft wash."""
+    N = n * S
+    tile = Image.new("RGB", (N, N), INK)
+    band = wash(N, int(N * 0.45))
+    tile.paste(band, (0, N - band.size[1]))
+    f = ImageFont.truetype("fonts/ABCNormal-Regular.otf", int(N * 0.62))
+    d = ImageDraw.Draw(tile)
+    bb = d.textbbox((0, 0), "F", font=f)
+    tw, th = bb[2] - bb[0], bb[3] - bb[1]
+    r = N * 0.055
+    gap = r * 0.9
+    # centre the letter + dot group horizontally, the letter vertically
+    x = (N - (tw + gap + 2 * r)) / 2 - bb[0]
+    y = (N - th) / 2 - bb[1]
+    d.text((x, y), "F", font=f, fill=(255, 255, 255))
+    dx, dy = x + bb[0] + tw + gap, y + bb[1] - r * 0.3
+    d.ellipse([dx, dy, dx + 2 * r, dy + 2 * r], fill=(179, 90, 69))
+    mask = Image.new("L", (N, N), 0)
+    md = ImageDraw.Draw(mask)
+    if round_:
+        md.ellipse([0, 0, N - 1, N - 1], fill=255)
+    else:
+        md.rounded_rectangle([0, 0, N - 1, N - 1], radius=N * 0.22, fill=255)
+    out = Image.new("RGBA", (N, N), (0, 0, 0, 0))
+    out.paste(tile, (0, 0), mask)
+    return aa(out, (n, n))
+
+def android():
+    d = os.path.join(ANDROID_RES, "drawable-xhdpi")
+    os.makedirs(d, exist_ok=True)
+    brand(320, 180, 44, True, "banner.png", out_dir=d)
+    for dpi, n in (("mdpi", 48), ("hdpi", 72), ("xhdpi", 96), ("xxhdpi", 144), ("xxxhdpi", 192)):
+        d = os.path.join(ANDROID_RES, "mipmap-" + dpi)
+        os.makedirs(d, exist_ok=True)
+        launcher(n).save(os.path.join(d, "ic_launcher.png"))
+        launcher(n, round_=True).save(os.path.join(d, "ic_launcher_round.png"))
+
+if __name__ == "__main__" and sys.argv[1:] == ["android"]:
+    android()
+elif __name__ == "__main__":
     os.makedirs(OUT, exist_ok=True)
     shapes()
     icons()
