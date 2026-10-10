@@ -1,0 +1,7 @@
+{
+  "database": "dolt",
+  "backend": "dolt",
+  "dolt_mode": "embedded",
+  "dolt_database": "roku_iptv",
+  "project_id": "edc1b658-8b17-4e3c-ae00-0631209a5ba5"
+}
