@@ -1,0 +1,66 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!-- 3-panel live TV: categories | channels | preview + EPG. OK on the playing channel goes fullscreen. -->
+<component name="LiveScreen" extends="Group">
+  <interface>
+    <field id="creds" type="assocarray" onChange="onCreds" />
+    <field id="logout" type="boolean" alwaysNotify="true" />
+    <field id="exitApp" type="boolean" alwaysNotify="true" />
+  </interface>
+  <script type="text/brightscript" uri="pkg:/source/utils.brs" />
+  <script type="text/brightscript" uri="pkg:/components/LiveScreen.brs" />
+  <children>
+    <Group id="panels">
+      <Label text="Live TV" translation="[40,32]" font="font:MediumBoldSystemFont" color="0xFFFFFFFF" />
+      <Label id="clock" translation="[1480,32]" width="400" horizAlign="right" font="font:MediumSystemFont" color="0xD5DBE5FF" />
+
+      <!-- Panel 1: categories -->
+      <Rectangle translation="[40,110]" width="400" height="930" color="0x141A26FF" />
+      <Label text="CATEGORIES" translation="[60,124]" font="font:SmallBoldSystemFont" color="0x6F7A8CFF" />
+      <LabelList id="cats" translation="[50,176]" itemSize="[380,64]" itemSpacing="[0,2]" numRows="13"
+                 font="font:SmallSystemFont" focusedFont="font:SmallBoldSystemFont"
+                 color="0xD5DBE5FF" focusedColor="0xFFFFFFFF" focusBitmapBlendColor="0x2E7CF6FF"
+                 focusFootprintBlendColor="0x2E7CF666" vertFocusAnimationStyle="floatingFocus" />
+
+      <!-- Panel 2: channels -->
+      <Rectangle translation="[460,110]" width="640" height="930" color="0x141A26FF" />
+      <Label id="chansTitle" text="CHANNELS" translation="[480,124]" width="600" font="font:SmallBoldSystemFont" color="0x6F7A8CFF" />
+      <MarkupList id="chans" translation="[470,176]" itemComponentName="ChannelItem" itemSize="[620,84]" itemSpacing="[0,4]" numRows="10"
+                  focusBitmapBlendColor="0x2E7CF6FF" focusFootprintBlendColor="0x2E7CF666" vertFocusAnimationStyle="floatingFocus" />
+      <Label id="chansMsg" translation="[480,500]" width="600" horizAlign="center" wrap="true" font="font:SmallSystemFont" color="0x9AA4B5FF" />
+
+      <!-- Panel 3: preview (video sits on top of this) + EPG -->
+      <Rectangle translation="[1120,110]" width="760" height="930" color="0x141A26FF" />
+      <Rectangle translation="[1120,110]" width="760" height="428" color="0x000000FF" />
+      <Label id="infoTitle" translation="[1145,560]" width="710" font="font:MediumBoldSystemFont" color="0xFFFFFFFF" />
+      <Label id="nowTime" translation="[1145,616]" width="710" font="font:SmallSystemFont" color="0x2E7CF6FF" />
+      <Rectangle id="progBg" translation="[1145,656]" width="710" height="6" color="0x2A3242FF" />
+      <Rectangle id="progFill" translation="[1145,656]" width="0" height="6" color="0x2E7CF6FF" />
+      <Label id="nowTitle" translation="[1145,676]" width="710" font="font:MediumSystemFont" color="0xFFFFFFFF" />
+      <Label id="nowDesc" translation="[1145,724]" width="710" height="150" wrap="true" maxLines="4" font="font:SmallestSystemFont" color="0x9AA4B5FF" />
+      <Label id="nextHdr" text="UP NEXT" translation="[1145,880]" font="font:SmallBoldSystemFont" color="0x6F7A8CFF" />
+      <Label id="nextList" translation="[1145,916]" width="710" height="120" wrap="true" maxLines="4" font="font:SmallestSystemFont" color="0xD5DBE5FF" />
+
+      <Label text="Left/Right: switch panel     OK: play  -  OK again: fullscreen     *: log out     Back: exit"
+             translation="[40,1046]" width="1840" font="font:SmallestSystemFont" color="0x4F5A6CFF" />
+    </Group>
+
+    <Video id="player" translation="[1120,110]" width="760" height="428" enableUI="false" />
+    <Label id="playerMsg" translation="[1120,300]" width="760" horizAlign="center" wrap="true" font="font:SmallSystemFont" color="0xFFFFFFFF" />
+
+    <!-- Fullscreen info banner -->
+    <Group id="banner" visible="false">
+      <Rectangle translation="[0,780]" width="1920" height="300" color="0x000000CC" />
+      <Label id="bName" translation="[80,810]" width="1500" font="font:LargeBoldSystemFont" color="0xFFFFFFFF" />
+      <Label id="bClock" translation="[1500,816]" width="340" horizAlign="right" font="font:MediumSystemFont" color="0xD5DBE5FF" />
+      <Label id="bNow" translation="[80,890]" width="1760" font="font:MediumSystemFont" color="0xFFFFFFFF" />
+      <Rectangle translation="[80,946]" width="1000" height="6" color="0x2A3242FF" />
+      <Rectangle id="bProg" translation="[80,946]" width="0" height="6" color="0x2E7CF6FF" />
+      <Label id="bNext" translation="[80,976]" width="1760" font="font:SmallSystemFont" color="0x9AA4B5FF" />
+    </Group>
+
+    <Timer id="catTimer" duration="0.35" />
+    <Timer id="epgTimer" duration="0.5" />
+    <Timer id="bannerTimer" duration="5" />
+    <Timer id="clockTimer" duration="30" repeat="true" />
+  </children>
+</component>
