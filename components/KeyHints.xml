@@ -1,0 +1,10 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!-- Footer row of remote-key hints: [key cap] label. hints = [{k: "OK", t: "Select"}, ...]; k = "pp" draws the play/pause glyph. -->
+<component name="KeyHints" extends="Group">
+  <interface>
+    <field id="hints" type="array" onChange="render" />
+  </interface>
+  <script type="text/brightscript" uri="pkg:/source/utils.brs" />
+  <script type="text/brightscript" uri="pkg:/components/ui.brs" />
+  <script type="text/brightscript" uri="pkg:/components/KeyHints.brs" />
+</component>

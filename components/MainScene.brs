@@ -1,4 +1,6 @@
 sub init()
+    ' shared with list items so rows can show PLAYING / favorite marks without per-node fields
+    m.global.AddFields({ playingId: "", favIds: {} })
     m.screen = invalid
     creds = loadCreds()
     showLogin(creds, hasPassword(creds))
@@ -8,17 +10,55 @@ sub showLogin(creds as dynamic, autoLogin as boolean)
     replaceScreen(CreateObject("roSGNode", "LoginScreen"))
     if creds <> invalid then m.screen.creds = creds
     m.screen.ObserveField("loggedIn", "onLoggedIn")
+    m.screen.ObserveField("autoFailed", "onAutoFailed")
     if autoLogin then m.screen.autoLogin = true
 end sub
 
 sub onLoggedIn()
     creds = m.screen.loggedIn
     saveCreds(creds)
+    showLive(creds)
+end sub
+
+sub showLive(creds as object)
     live = CreateObject("roSGNode", "LiveScreen")
     replaceScreen(live)
     live.ObserveField("logout", "onLogout")
     live.ObserveField("exitApp", "onExitApp")
+    live.ObserveField("fatal", "onLiveFatal")
     live.creds = creds
+end sub
+
+' Saved login couldn't reach the server: show 1h instead of dumping the user on the form.
+sub onAutoFailed()
+    f = m.screen.autoFailed
+    showError("Cannot reach server", f.server)
+end sub
+
+sub onLiveFatal()
+    f = m.screen.fatal
+    c = loadCreds()
+    server = ""
+    if c <> invalid then server = c.server
+    showError(f.heading, server)
+    if f.message <> invalid then m.screen.message = f.message
+end sub
+
+sub showError(heading as string, server as string)
+    err = CreateObject("roSGNode", "ErrorScreen")
+    replaceScreen(err)
+    err.heading = heading
+    err.detail = server
+    err.ObserveField("action", "onErrorAction")
+end sub
+
+sub onErrorAction()
+    creds = loadCreds()
+    if m.screen.action = "retry" and hasPassword(creds)
+        showLogin(creds, true)
+    else
+        showLogin(creds, false)
+    end if
 end sub
 
 sub onLogout()
@@ -28,6 +68,7 @@ sub onLogout()
         creds.password = ""
         saveCreds(creds)
     end if
+    m.global.playingId = ""
     showLogin(creds, false)
 end sub
 

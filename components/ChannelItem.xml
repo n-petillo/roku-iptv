@@ -1,13 +1,38 @@
 <?xml version="1.0" encoding="utf-8"?>
+<!-- Channel row (1a), 620x88: number, logo tile, name + what's on, PLAYING / favorite marks.
+     Content: id, title, HDPosterUrl, ShortDescriptionLine1 = number, ShortDescriptionLine2 = "Title · 34 min left".
+     Focused in a focused list = solid white with ink text. -->
 <component name="ChannelItem" extends="Group">
   <interface>
     <field id="itemContent" type="node" onChange="onContent" />
-    <field id="focusPercent" type="float" onChange="onFocus" />
+    <field id="focusPercent" type="float" onChange="render" />
+    <field id="listHasFocus" type="boolean" onChange="render" />
   </interface>
+  <script type="text/brightscript" uri="pkg:/source/utils.brs" />
+  <script type="text/brightscript" uri="pkg:/components/ui.brs" />
   <script type="text/brightscript" uri="pkg:/components/ChannelItem.brs" />
   <children>
-    <Label id="num" translation="[16,0]" width="80" height="84" vertAlign="center" font="font:SmallSystemFont" color="0x9AA4B5FF" />
-    <Poster id="logo" translation="[100,12]" width="80" height="60" loadDisplayMode="scaleToFit" />
-    <Label id="name" translation="[200,0]" width="400" height="84" vertAlign="center" font="font:MediumSystemFont" color="0xD5DBE5FF" />
+    <Poster id="fill" uri="pkg:/images/r8.9.png" width="620" height="88" visible="false" />
+    <Label id="num" translation="[20,0]" width="60" height="88" vertAlign="center">
+      <Font role="font" uri="pkg:/fonts/ABCNormal-Normal.otf" size="24" />
+    </Label>
+    <Poster id="tile" uri="pkg:/images/r4.9.png" translation="[102,17]" width="72" height="54" />
+    <Label id="abbr" translation="[102,17]" width="72" height="54" horizAlign="center" vertAlign="center">
+      <Font role="font" uri="pkg:/fonts/ABCNormal-Normal.otf" size="18" />
+    </Label>
+    <Poster id="logo" translation="[106,20]" width="64" height="48" loadDisplayMode="scaleToFit" />
+    <Label id="name" translation="[196,12]" width="400">
+      <Font role="font" uri="pkg:/fonts/ABCNormal-Normal.otf" size="28" />
+    </Label>
+    <Label id="now" translation="[196,50]" width="400">
+      <Font role="font" uri="pkg:/fonts/ABCNormal-Normal.otf" size="20" />
+    </Label>
+    <Poster id="star" uri="pkg:/images/star.png" translation="[0,31]" width="26" height="26" visible="false" />
+    <Group id="playing" visible="false">
+      <Poster id="playDot" uri="pkg:/images/dot.png" translation="[0,39]" width="10" height="10" blendColor="0xB35A45FF" />
+      <Label id="playText" text="PLAYING" translation="[18,0]" height="88" vertAlign="center">
+        <Font role="font" uri="pkg:/fonts/ABCNormal-Normal.otf" size="18" />
+      </Label>
+    </Group>
   </children>
 </component>

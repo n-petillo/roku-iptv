@@ -1,6 +1,11 @@
 ' Pure helpers shared by the render thread, tasks and tests.
 ' No SceneGraph nodes or network access in here.
 
+' Prefilled on the login form; editable for other providers.
+function DefaultServer() as string
+    return "http://ipservz.net"
+end function
+
 ' "my.host:8080/" -> "http://my.host:8080"
 function NormalizeServer(s as string) as string
     s = s.Trim()
@@ -135,4 +140,62 @@ function Progress(start as integer, ends as integer, now as integer) as float
     if p < 0 then return 0.0
     if p > 1 then return 1.0
     return p
+end function
+
+' "Atlas Nature HD" -> "AN"
+function Abbrev(name as string) as string
+    out = ""
+    for each w in name.Trim().Split(" ")
+        if w <> "" and Len(out) < 2 then out = out + UCase(Left(w, 1))
+    end for
+    return out
+end function
+
+function MinLeftText(secs as integer) as string
+    mins = Int((secs + 59) / 60)
+    if mins < 1 then mins = 1
+    return mins.ToStr() + " min left"
+end function
+
+' Channel-row subtitle: "Coastlines · 34 min left"
+function NowLine(p as dynamic, now as integer) as string
+    if p = invalid then return ""
+    return p.title + " · " + MinLeftText(p.ends - now)
+end function
+
+' "Thu 20:26"
+function FmtClock(secs as integer) as string
+    dt = CreateObject("roDateTime")
+    dt.FromSeconds(secs)
+    dt.ToLocalTime()
+    return Left(dt.GetWeekday(), 3) + " " + Pad2(dt.GetHours()) + ":" + Pad2(dt.GetMinutes())
+end function
+
+' Favorites are an ordered array of {id, title, num, icon}.
+function FavIndex(favs as object, id as string) as integer
+    for i = 0 to favs.Count() - 1
+        if favs[i].id = id then return i
+    end for
+    return -1
+end function
+
+' Adds the channel if missing, removes it if present. Returns true when it was added.
+function FavToggle(favs as object, entry as object) as boolean
+    idx = FavIndex(favs, entry.id)
+    if idx >= 0
+        favs.Delete(idx)
+        return false
+    end if
+    favs.Push(entry)
+    return true
+end function
+
+' True when the text has characters beyond Latin Extended-A/B (Arabic, Cyrillic, Greek, ...),
+' which ABC Normal can't draw.
+function HasNonLatin(s as string) as boolean
+    for i = 1 to Len(s)
+        c = Asc(Mid(s, i, 1))
+        if c > &h24F and c <> &h2013 and c <> &h2014 and c <> &h2022 and c <> &h2026 and (c < &h2190 or c > &h2193) then return true
+    end for
+    return false
 end function

@@ -1,13 +1,13 @@
 # Usage:  make install ROKU_IP=192.168.1.50 ROKU_PASS=yourdevpassword
 ROKU_IP   ?= $(shell cat .roku_ip 2>/dev/null)
 ROKU_PASS ?= $(shell cat .roku_pass 2>/dev/null)
-ZIP := out/iptv-live.zip
+ZIP := out/fedsmokertv.zip
 
 .PHONY: zip install test unit lint clean
 
 zip:
 	@mkdir -p out && rm -f $(ZIP)
-	@zip -qr $(ZIP) manifest source components images -x '*.DS_Store'
+	@zip -qr $(ZIP) manifest source components images fonts -x '*.DS_Store'
 	@echo "Built $(ZIP)"
 
 install: zip
@@ -25,7 +25,7 @@ unit:
 
 # Static check (syntax, undefined functions, component wiring)
 lint:
-	@npx -y brighterscript --rootDir . --createPackage false --files manifest "source/**/*" "components/**/*" "images/**/*"
+	@npx -y brighterscript --rootDir . --createPackage false --files manifest "source/**/*" "components/**/*" "images/**/*" "fonts/**/*"
 
 clean:
 	rm -rf out

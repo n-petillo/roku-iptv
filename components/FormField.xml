@@ -1,0 +1,24 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!-- Login field (1e): label over value; focused = white fill with ink text, else a bottom hairline. 600x100. -->
+<component name="FormField" extends="Group">
+  <interface>
+    <field id="label" type="string" onChange="render" />
+    <field id="value" type="string" onChange="render" />
+    <field id="placeholder" type="string" onChange="render" />
+    <field id="secure" type="boolean" onChange="render" />
+    <field id="focused" type="boolean" onChange="render" />
+  </interface>
+  <script type="text/brightscript" uri="pkg:/source/utils.brs" />
+  <script type="text/brightscript" uri="pkg:/components/ui.brs" />
+  <script type="text/brightscript" uri="pkg:/components/FormField.brs" />
+  <children>
+    <Poster id="fill" uri="pkg:/images/r8.9.png" width="600" height="100" visible="false" />
+    <Rectangle id="rule" translation="[0,99]" width="600" height="1" />
+    <Label id="lbl" translation="[24,18]" width="552">
+      <Font role="font" uri="pkg:/fonts/ABCNormal-Normal.otf" size="18" />
+    </Label>
+    <Label id="val" translation="[24,46]" width="552">
+      <Font role="font" uri="pkg:/fonts/ABCNormal-Normal.otf" size="28" />
+    </Label>
+  </children>
+</component>

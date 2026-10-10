@@ -1,0 +1,18 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!-- Rounded button: outline when idle, solid white with ink text when focused. Height 72; width fits text. -->
+<component name="PillButton" extends="Group">
+  <interface>
+    <field id="text" type="string" onChange="render" />
+    <field id="focused" type="boolean" onChange="render" />
+    <field id="width" type="integer" />
+  </interface>
+  <script type="text/brightscript" uri="pkg:/source/utils.brs" />
+  <script type="text/brightscript" uri="pkg:/components/ui.brs" />
+  <script type="text/brightscript" uri="pkg:/components/PillButton.brs" />
+  <children>
+    <Poster id="bg" uri="pkg:/images/pill_line.9.png" height="72" />
+    <Label id="lbl" translation="[44,0]" height="72" vertAlign="center">
+      <Font role="font" uri="pkg:/fonts/ABCNormal-Normal.otf" size="26" />
+    </Label>
+  </children>
+</component>

@@ -1,0 +1,34 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!-- Favorites start-screen tile (1j), 408x276: logo card with live progress, number + name, what's on.
+     Content: id, title, HDPosterUrl, ShortDescriptionLine1 = number, ShortDescriptionLine2 = now title,
+     and a `prog` float field (0..1) added by LiveScreen. Focused = white ring offset 4px. -->
+<component name="FavTile" extends="Group">
+  <interface>
+    <field id="itemContent" type="node" onChange="onContent" />
+    <field id="focusPercent" type="float" onChange="render" />
+    <field id="gridHasFocus" type="boolean" onChange="render" />
+  </interface>
+  <script type="text/brightscript" uri="pkg:/source/utils.brs" />
+  <script type="text/brightscript" uri="pkg:/components/ui.brs" />
+  <script type="text/brightscript" uri="pkg:/components/FavTile.brs" />
+  <children>
+    <Poster id="ring" uri="pkg:/images/ring.9.png" translation="[-7,-7]" width="422" height="214" blendColor="0xFFFFFFFF" visible="false" />
+    <Poster id="card" uri="pkg:/images/r8.9.png" width="408" height="200" blendColor="0xFFFFFF0F" />
+    <Poster id="border" uri="pkg:/images/r8_line.9.png" width="408" height="200" blendColor="0xFFFFFF1A" />
+    <Label id="abbr" width="408" height="200" horizAlign="center" vertAlign="center" color="0xFFFFFF59">
+      <Font role="font" uri="pkg:/fonts/ABCNormal-Normal.otf" size="28" />
+    </Label>
+    <Poster id="logo" translation="[104,45]" width="200" height="110" loadDisplayMode="scaleToFit" />
+    <Rectangle id="track" translation="[0,196]" width="408" height="4" color="0x0C0C0C80" visible="false" />
+    <Rectangle id="bar" translation="[0,196]" width="0" height="4" color="0xFFFFFFFF" visible="false" />
+    <Label id="num" translation="[0,214]">
+      <Font role="font" uri="pkg:/fonts/ABCNormal-Normal.otf" size="24" />
+    </Label>
+    <Label id="name" translation="[70,214]" width="338">
+      <Font role="font" uri="pkg:/fonts/ABCNormal-Normal.otf" size="24" />
+    </Label>
+    <Label id="now" translation="[0,250]" width="408">
+      <Font role="font" uri="pkg:/fonts/ABCNormal-Normal.otf" size="20" />
+    </Label>
+  </children>
+</component>

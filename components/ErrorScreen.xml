@@ -1,0 +1,44 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!-- 1h: full-screen error with recovery actions. Sets `action` to "retry" or "edit". -->
+<component name="ErrorScreen" extends="Group">
+  <interface>
+    <field id="heading" type="string" value="Cannot reach server" onChange="render" />
+    <field id="message" type="string" value="Check the server URL includes the port (:8080 etc.) and the right http:// or https://." onChange="render" />
+    <field id="detail" type="string" onChange="render" />
+    <field id="action" type="string" alwaysNotify="true" />
+  </interface>
+  <script type="text/brightscript" uri="pkg:/source/utils.brs" />
+  <script type="text/brightscript" uri="pkg:/components/ui.brs" />
+  <script type="text/brightscript" uri="pkg:/components/ErrorScreen.brs" />
+  <children>
+    <Rectangle width="1920" height="1080" color="0x0C0C0CFF" />
+    <Label text="FedSmokerTV" translation="[96,50]" color="0xFFFFFFFF">
+      <Font role="font" uri="pkg:/fonts/ABCNormal-Normal.otf" size="34" />
+    </Label>
+
+    <Poster uri="pkg:/images/dot.png" translation="[96,307]" width="10" height="10" blendColor="0xB35A45FF" />
+    <Label text="CONNECTION" translation="[120,300]" color="0xFFFFFF99">
+      <Font role="font" uri="pkg:/fonts/ABCNormal-Normal.otf" size="20" />
+    </Label>
+    <Label id="heading" translation="[96,340]" width="1600" color="0xFFFFFFFF">
+      <Font role="font" uri="pkg:/fonts/ABCNormal-Normal.otf" size="96" />
+    </Label>
+    <Label id="message" translation="[96,470]" width="900" wrap="true" maxLines="3" lineSpacing="8" color="0xFFFFFF99">
+      <Font role="font" uri="pkg:/fonts/ABCNormal-Normal.otf" size="30" />
+    </Label>
+    <Group id="detailBox" translation="[96,600]">
+      <Poster id="detailBorder" uri="pkg:/images/r8_line.9.png" height="64" blendColor="0xFFFFFF26" />
+      <Label id="detail" translation="[24,0]" height="64" vertAlign="center" color="0xFFFFFFD9">
+        <Font role="font" uri="pkg:/fonts/ABCNormal-Normal.otf" size="24" />
+      </Label>
+    </Group>
+    <PillButton id="retry" translation="[96,720]" text="Retry" />
+    <PillButton id="edit" translation="[300,720]" text="Edit account" />
+
+    <Label text="Debug log: telnet &lt;roku-ip&gt; 8085 while the app runs." translation="[1404,880]" width="420" wrap="true" color="0xFFFFFF59">
+      <Font role="font" uri="pkg:/fonts/ABCNormal-Normal.otf" size="18" />
+    </Label>
+    <Rectangle translation="[96,1008]" width="1728" height="1" color="0xFFFFFF1A" />
+    <KeyHints id="hints" translation="[96,1008]" />
+  </children>
+</component>

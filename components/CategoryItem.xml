@@ -1,0 +1,24 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!-- Category row (1a/1i), 340x62. Content: title, id, ShortDescriptionLine1 = channel count once known.
+     id "fav" draws the star and a divider below. Selected = inset white bar + white text. -->
+<component name="CategoryItem" extends="Group">
+  <interface>
+    <field id="itemContent" type="node" onChange="onContent" />
+    <field id="focusPercent" type="float" onChange="render" />
+    <field id="listHasFocus" type="boolean" onChange="render" />
+  </interface>
+  <script type="text/brightscript" uri="pkg:/source/utils.brs" />
+  <script type="text/brightscript" uri="pkg:/components/ui.brs" />
+  <script type="text/brightscript" uri="pkg:/components/CategoryItem.brs" />
+  <children>
+    <Rectangle id="bar" translation="[-20,0]" width="3" height="62" visible="false" />
+    <Poster id="star" uri="pkg:/images/star.png" translation="[0,18]" width="26" height="26" visible="false" />
+    <Label id="name" height="62" width="260" vertAlign="center">
+      <Font role="font" uri="pkg:/fonts/ABCNormal-Normal.otf" size="28" />
+    </Label>
+    <Label id="count" translation="[240,0]" width="100" height="62" horizAlign="right" vertAlign="center">
+      <Font role="font" uri="pkg:/fonts/ABCNormal-Normal.otf" size="22" />
+    </Label>
+    <Rectangle id="divider" translation="[0,61]" width="340" height="1" color="0xFFFFFF1A" visible="false" />
+  </children>
+</component>

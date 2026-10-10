@@ -10,6 +10,7 @@ sub RunTests()
     Eq(t, "normalize keeps https", NormalizeServer("https://a.b"), "https://a.b")
     Eq(t, "normalize strips api path", NormalizeServer("http://a.b:8080/player_api.php?username=x"), "http://a.b:8080")
     Eq(t, "normalize strips get.php", NormalizeServer("a.b/get.php?username=x&type=m3u"), "http://a.b")
+    Eq(t, "default server", NormalizeServer(DefaultServer()), "http://ipservz.net")
     Eq(t, "normalize empty", NormalizeServer("  "), "")
     Eq(t, "normalize scheme only", NormalizeServer("http://"), "")
     Eq(t, "normalize scheme slash", NormalizeServer("http:///"), "")
@@ -56,6 +57,29 @@ sub RunTests()
     Eq(t, "progress clamp high", Progress(1000, 2000, 9999), 1.0)
     Eq(t, "pad2", Pad2(7), "07")
     Eq(t, "fmttime shape", Len(FmtTime(1700000000)), 5)
+
+    Eq(t, "abbrev", Abbrev("Atlas Nature HD"), "AN")
+    Eq(t, "abbrev one", Abbrev(" bbc "), "B")
+    Eq(t, "abbrev empty", Abbrev(""), "")
+    Eq(t, "minleft", MinLeftText(34 * 60), "34 min left")
+    Eq(t, "minleft rounds up", MinLeftText(61), "2 min left")
+    Eq(t, "minleft floor 1", MinLeftText(0), "1 min left")
+    Eq(t, "nowline", NowLine({ title: "Coastlines", ends: 3000 }, 3000 - 34 * 60), "Coastlines · 34 min left")
+    Eq(t, "nowline invalid", NowLine(invalid, 0), "")
+    Eq(t, "clock shape", Len(FmtClock(1700000000)), 9)
+
+    favs = []
+    Eq(t, "fav add", FavToggle(favs, { id: "1", title: "A" }), true)
+    Eq(t, "fav add 2", FavToggle(favs, { id: "2", title: "B" }), true)
+    Eq(t, "fav index", FavIndex(favs, "2"), 1)
+    Eq(t, "fav remove", FavToggle(favs, { id: "1", title: "A" }), false)
+    Eq(t, "fav count", favs.Count(), 1)
+    Eq(t, "fav missing", FavIndex(favs, "1"), -1)
+
+    Eq(t, "latin", HasNonLatin("Atlas Nature HD · 34 min left – é…"), false)
+    Eq(t, "arabic", HasNonLatin("قناة"), true)
+    Eq(t, "cyrillic", HasNonLatin("Первый канал"), true)
+    Eq(t, "arrows ok", HasNonLatin("← →"), false)
 
     print "TESTS DONE: "; t.pass; " passed, "; t.fail; " failed"
 end sub

@@ -5,6 +5,6 @@
   </interface>
   <script type="text/brightscript" uri="pkg:/components/MainScene.brs" />
   <children>
-    <Rectangle id="bg" width="1920" height="1080" color="0x0B0F17FF" />
+    <Rectangle id="bg" width="1920" height="1080" color="0x0C0C0CFF" />
   </children>
 </component>

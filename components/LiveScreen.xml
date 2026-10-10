@@ -1,66 +1,184 @@
 <?xml version="1.0" encoding="utf-8"?>
-<!-- 3-panel live TV: categories | channels | preview + EPG. OK on the playing channel goes fullscreen. -->
+<!-- Live TV. Three modes sharing one Video node:
+       home   (1j) favorites tile grid, shown at start when favorites exist
+       panels (1a/1g/1i) categories | channels | preview + EPG
+       full   (1d) fullscreen video with floating now/next card -->
 <component name="LiveScreen" extends="Group">
   <interface>
     <field id="creds" type="assocarray" onChange="onCreds" />
     <field id="logout" type="boolean" alwaysNotify="true" />
     <field id="exitApp" type="boolean" alwaysNotify="true" />
+    <!-- {heading, message}: unrecoverable load failure, MainScene shows the error screen -->
+    <field id="fatal" type="assocarray" />
   </interface>
   <script type="text/brightscript" uri="pkg:/source/utils.brs" />
+  <script type="text/brightscript" uri="pkg:/components/ui.brs" />
   <script type="text/brightscript" uri="pkg:/components/LiveScreen.brs" />
   <children>
-    <Group id="panels">
-      <Label text="Live TV" translation="[40,32]" font="font:MediumBoldSystemFont" color="0xFFFFFFFF" />
-      <Label id="clock" translation="[1480,32]" width="400" horizAlign="right" font="font:MediumSystemFont" color="0xD5DBE5FF" />
+    <Rectangle id="ground" width="1920" height="1080" color="0x0C0C0CFF" />
 
-      <!-- Panel 1: categories -->
-      <Rectangle translation="[40,110]" width="400" height="930" color="0x141A26FF" />
-      <Label text="CATEGORIES" translation="[60,124]" font="font:SmallBoldSystemFont" color="0x6F7A8CFF" />
-      <LabelList id="cats" translation="[50,176]" itemSize="[380,64]" itemSpacing="[0,2]" numRows="13"
-                 font="font:SmallSystemFont" focusedFont="font:SmallBoldSystemFont"
-                 color="0xD5DBE5FF" focusedColor="0xFFFFFFFF" focusBitmapBlendColor="0x2E7CF6FF"
-                 focusFootprintBlendColor="0x2E7CF666" vertFocusAnimationStyle="floatingFocus" />
-
-      <!-- Panel 2: channels -->
-      <Rectangle translation="[460,110]" width="640" height="930" color="0x141A26FF" />
-      <Label id="chansTitle" text="CHANNELS" translation="[480,124]" width="600" font="font:SmallBoldSystemFont" color="0x6F7A8CFF" />
-      <MarkupList id="chans" translation="[470,176]" itemComponentName="ChannelItem" itemSize="[620,84]" itemSpacing="[0,4]" numRows="10"
-                  focusBitmapBlendColor="0x2E7CF6FF" focusFootprintBlendColor="0x2E7CF666" vertFocusAnimationStyle="floatingFocus" />
-      <Label id="chansMsg" translation="[480,500]" width="600" horizAlign="center" wrap="true" font="font:SmallSystemFont" color="0x9AA4B5FF" />
-
-      <!-- Panel 3: preview (video sits on top of this) + EPG -->
-      <Rectangle translation="[1120,110]" width="760" height="930" color="0x141A26FF" />
-      <Rectangle translation="[1120,110]" width="760" height="428" color="0x000000FF" />
-      <Label id="infoTitle" translation="[1145,560]" width="710" font="font:MediumBoldSystemFont" color="0xFFFFFFFF" />
-      <Label id="nowTime" translation="[1145,616]" width="710" font="font:SmallSystemFont" color="0x2E7CF6FF" />
-      <Rectangle id="progBg" translation="[1145,656]" width="710" height="6" color="0x2A3242FF" />
-      <Rectangle id="progFill" translation="[1145,656]" width="0" height="6" color="0x2E7CF6FF" />
-      <Label id="nowTitle" translation="[1145,676]" width="710" font="font:MediumSystemFont" color="0xFFFFFFFF" />
-      <Label id="nowDesc" translation="[1145,724]" width="710" height="150" wrap="true" maxLines="4" font="font:SmallestSystemFont" color="0x9AA4B5FF" />
-      <Label id="nextHdr" text="UP NEXT" translation="[1145,880]" font="font:SmallBoldSystemFont" color="0x6F7A8CFF" />
-      <Label id="nextList" translation="[1145,916]" width="710" height="120" wrap="true" maxLines="4" font="font:SmallestSystemFont" color="0xD5DBE5FF" />
-
-      <Label text="Left/Right: switch panel     OK: play  -  OK again: fullscreen     *: log out     Back: exit"
-             translation="[40,1046]" width="1840" font="font:SmallestSystemFont" color="0x4F5A6CFF" />
+    <!-- ===== header (home + panels) ===== -->
+    <Group id="header">
+      <Label id="brand" text="FedSmokerTV" translation="[96,46]" color="0xFFFFFFFF">
+        <Font role="font" uri="pkg:/fonts/ABCNormal-Normal.otf" size="34" />
+      </Label>
+      <Label id="liveTag" text="LIVE TV" translation="[330,60]" color="0xFFFFFF59">
+        <Font role="font" uri="pkg:/fonts/ABCNormal-Normal.otf" size="20" />
+      </Label>
+      <Group id="tabs" />
+      <Label id="clock" translation="[1424,52]" width="400" horizAlign="right" color="0xFFFFFF99">
+        <Font role="font" uri="pkg:/fonts/ABCNormal-Normal.otf" size="30" />
+      </Label>
+      <Rectangle id="headRule" translation="[96,136]" width="1728" height="1" color="0xFFFFFF1A" />
     </Group>
 
-    <Video id="player" translation="[1120,110]" width="760" height="428" enableUI="false" />
-    <Label id="playerMsg" translation="[1120,300]" width="760" horizAlign="center" wrap="true" font="font:SmallSystemFont" color="0xFFFFFFFF" />
+    <!-- ===== home: favorites grid (1j) ===== -->
+    <Group id="home" visible="false">
+      <Label id="favTitle" text="Favorites" translation="[96,166]" color="0xFFFFFFFF">
+        <Font role="font" uri="pkg:/fonts/ABCNormal-Normal.otf" size="64" />
+      </Label>
+      <Label id="favCount" translation="[400,166]" color="0xFFFFFF59">
+        <Font role="font" uri="pkg:/fonts/ABCNormal-Regular.otf" size="64" />
+      </Label>
+      <MarkupGrid id="favGrid" translation="[96,310]" itemComponentName="FavTile" numColumns="4" numRows="2"
+                  itemSize="[408,276]" itemSpacing="[32,48]" drawFocusFeedback="false" vertFocusAnimationStyle="floatingFocus" />
+    </Group>
 
-    <!-- Fullscreen info banner -->
+    <!-- ===== panels (1a) ===== -->
+    <Group id="panels">
+      <Label text="CATEGORIES" translation="[96,172]" color="0xFFFFFF59">
+        <Font role="font" uri="pkg:/fonts/ABCNormal-Normal.otf" size="20" />
+      </Label>
+      <MarkupList id="cats" translation="[96,214]" itemComponentName="CategoryItem" itemSize="[340,62]" numRows="12"
+                  drawFocusFeedback="false" vertFocusAnimationStyle="floatingFocus" />
+      <Group id="catSkel" translation="[96,214]" />
+
+      <Rectangle translation="[476,160]" width="1" height="830" color="0xFFFFFF1A" />
+
+      <Label id="chansTitle" translation="[516,172]" width="620" color="0xFFFFFF59">
+        <Font role="font" uri="pkg:/fonts/ABCNormal-Normal.otf" size="20" />
+      </Label>
+      <MarkupList id="chans" translation="[516,214]" itemComponentName="ChannelItem" itemSize="[620,88]" itemSpacing="[0,4]" numRows="8"
+                  drawFocusFeedback="false" vertFocusAnimationStyle="floatingFocus" />
+      <Group id="chanSkel" translation="[516,214]" visible="false" />
+      <Label id="chansMsg" translation="[536,520]" width="580" horizAlign="center" wrap="true" color="0xFFFFFF99">
+        <Font role="font" uri="pkg:/fonts/ABCNormal-Normal.otf" size="24" />
+      </Label>
+      <Group id="favHint" translation="[536,0]" visible="false" />
+
+      <Rectangle translation="[1176,160]" width="1" height="830" color="0xFFFFFF1A" />
+
+      <!-- preview frame sits under the Video node; text below it -->
+      <Poster uri="pkg:/images/r8.9.png" translation="[1216,172]" width="608" height="342" blendColor="0x000000FF" />
+      <Label id="infoChan" translation="[1216,540]" width="608" color="0xFFFFFF59">
+        <Font role="font" uri="pkg:/fonts/ABCNormal-Normal.otf" size="22" />
+      </Label>
+      <Label id="infoTitle" translation="[1216,574]" width="608" color="0xFFFFFFFF">
+        <Font role="font" uri="pkg:/fonts/ABCNormal-Normal.otf" size="44" />
+      </Label>
+      <Label id="infoTime" translation="[1216,638]" width="608" color="0xFFFFFF99">
+        <Font role="font" uri="pkg:/fonts/ABCNormal-Normal.otf" size="22" />
+      </Label>
+      <Label id="infoLeft" translation="[1216,638]" width="608" horizAlign="right" color="0xFFFFFF99">
+        <Font role="font" uri="pkg:/fonts/ABCNormal-Normal.otf" size="22" />
+      </Label>
+      <Rectangle id="progTrack" translation="[1216,676]" width="608" height="3" color="0xFFFFFF1A" />
+      <Rectangle id="progFill" translation="[1216,676]" width="0" height="3" color="0xFFFFFFFF" />
+      <Label id="infoDesc" translation="[1216,700]" width="608" wrap="true" maxLines="3" lineSpacing="6" color="0xFFFFFF99">
+        <Font role="font" uri="pkg:/fonts/ABCNormal-Normal.otf" size="22" />
+      </Label>
+      <Group id="nextBox">
+        <Rectangle translation="[1216,816]" width="608" height="1" color="0xFFFFFF1A" />
+        <Label text="UP NEXT" translation="[1216,840]" color="0xFFFFFF59">
+          <Font role="font" uri="pkg:/fonts/ABCNormal-Normal.otf" size="20" />
+        </Label>
+        <Group id="nextRows" />
+      </Group>
+    </Group>
+
+    <!-- ===== player (preview or fullscreen) ===== -->
+    <Video id="player" translation="[1216,172]" width="608" height="342" enableUI="false" />
+    <Poster id="vmask" uri="pkg:/images/mask_r8.9.png" translation="[1216,172]" width="608" height="342" />
+    <Group id="liveBadge" translation="[1232,188]" visible="false">
+      <Poster uri="pkg:/images/pill_s.9.png" width="92" height="32" blendColor="0x0C0C0CB3" />
+      <Poster uri="pkg:/images/dot.png" translation="[14,11]" width="10" height="10" blendColor="0xB35A45FF" />
+      <Label text="LIVE" translation="[32,0]" height="32" vertAlign="center" color="0xFFFFFFFF">
+        <Font role="font" uri="pkg:/fonts/ABCNormal-Normal.otf" size="16" />
+      </Label>
+    </Group>
+    <!-- 1g: channel won't play -->
+    <Group id="unavail" translation="[1216,172]" visible="false">
+      <Poster uri="pkg:/images/r8.9.png" width="608" height="342" blendColor="0x000000FF" />
+      <Poster uri="pkg:/images/r8_line.9.png" width="608" height="342" blendColor="0xFFFFFF1A" />
+      <Label text="CHANNEL UNAVAILABLE" translation="[0,108]" width="608" horizAlign="center" color="0xFFFFFF59">
+        <Font role="font" uri="pkg:/fonts/ABCNormal-Normal.otf" size="20" />
+      </Label>
+      <Label text="This channel isn't broadcasting" translation="[0,142]" width="608" horizAlign="center" color="0xFFFFFFFF">
+        <Font role="font" uri="pkg:/fonts/ABCNormal-Normal.otf" size="30" />
+      </Label>
+      <Label id="unavailWhy" translation="[84,192]" width="440" horizAlign="center" wrap="true" maxLines="2" color="0xFFFFFF99">
+        <Font role="font" uri="pkg:/fonts/ABCNormal-Normal.otf" size="20" />
+      </Label>
+    </Group>
+    <Label id="playerMsg" translation="[1216,172]" width="608" height="342" horizAlign="center" vertAlign="center" color="0xFFFFFF99">
+      <Font role="font" uri="pkg:/fonts/ABCNormal-Normal.otf" size="22" />
+    </Label>
+
+    <!-- ===== fullscreen banner (1d) ===== -->
     <Group id="banner" visible="false">
-      <Rectangle translation="[0,780]" width="1920" height="300" color="0x000000CC" />
-      <Label id="bName" translation="[80,810]" width="1500" font="font:LargeBoldSystemFont" color="0xFFFFFFFF" />
-      <Label id="bClock" translation="[1500,816]" width="340" horizAlign="right" font="font:MediumSystemFont" color="0xD5DBE5FF" />
-      <Label id="bNow" translation="[80,890]" width="1760" font="font:MediumSystemFont" color="0xFFFFFFFF" />
-      <Rectangle translation="[80,946]" width="1000" height="6" color="0x2A3242FF" />
-      <Rectangle id="bProg" translation="[80,946]" width="0" height="6" color="0x2E7CF6FF" />
-      <Label id="bNext" translation="[80,976]" width="1760" font="font:SmallSystemFont" color="0x9AA4B5FF" />
+      <Label id="bClock" translation="[1424,80]" width="400" horizAlign="right" color="0xFFFFFFFF">
+        <Font role="font" uri="pkg:/fonts/ABCNormal-Normal.otf" size="34" />
+      </Label>
+      <Group id="surfUp" />
+      <Group id="surfDown" />
+      <Group id="card" translation="[96,722]">
+        <Poster uri="pkg:/images/r12.9.png" width="940" height="262" blendColor="0x0C0C0CBF" />
+        <Label id="bNum" translation="[44,36]" color="0xFFFFFFFF">
+          <Font role="font" uri="pkg:/fonts/ABCNormal-Regular.otf" size="120" />
+        </Label>
+        <Group id="bCol" translation="[300,0]">
+          <Poster uri="pkg:/images/dot.png" translation="[0,47]" width="10" height="10" blendColor="0xB35A45FF" />
+          <Label id="bName" translation="[22,40]" color="0xFFFFFF99">
+            <Font role="font" uri="pkg:/fonts/ABCNormal-Normal.otf" size="20" />
+          </Label>
+          <Label id="bTitle" translation="[0,74]" color="0xFFFFFFFF">
+            <Font role="font" uri="pkg:/fonts/ABCNormal-Normal.otf" size="44" />
+          </Label>
+          <Label id="bStart" translation="[0,140]" color="0xFFFFFF99">
+            <Font role="font" uri="pkg:/fonts/ABCNormal-Normal.otf" size="20" />
+          </Label>
+          <Rectangle id="bTrack" translation="[74,152]" height="3" color="0xFFFFFF33" />
+          <Rectangle id="bFill" translation="[74,152]" height="3" color="0xFFFFFFFF" />
+          <Label id="bEnd" translation="[0,140]" horizAlign="right" color="0xFFFFFF99">
+            <Font role="font" uri="pkg:/fonts/ABCNormal-Normal.otf" size="20" />
+          </Label>
+          <Rectangle id="bRule" translation="[0,184]" height="1" color="0xFFFFFF26" />
+          <Label id="bNext" translation="[0,202]" color="0xFFFFFF99">
+            <Font role="font" uri="pkg:/fonts/ABCNormal-Normal.otf" size="22" />
+          </Label>
+        </Group>
+      </Group>
+    </Group>
+
+    <!-- ===== footer key hints ===== -->
+    <Group id="footer">
+      <Rectangle translation="[96,1008]" width="1728" height="1" color="0xFFFFFF1A" />
+      <KeyHints id="hints" translation="[96,1008]" />
+    </Group>
+
+    <!-- ===== favorites toast (1i) ===== -->
+    <Group id="toast" visible="false">
+      <Poster id="toastBg" uri="pkg:/images/r12.9.png" height="64" blendColor="0xFFFFFF1F" />
+      <Poster uri="pkg:/images/check.png" translation="[24,20]" width="24" height="24" blendColor="0xFFFFFFFF" />
+      <Label id="toastText" translation="[64,0]" height="64" vertAlign="center" color="0xFFFFFFFF">
+        <Font role="font" uri="pkg:/fonts/ABCNormal-Normal.otf" size="24" />
+      </Label>
     </Group>
 
     <Timer id="catTimer" duration="0.35" />
-    <Timer id="epgTimer" duration="0.5" />
+    <Timer id="epgTimer" duration="0.4" />
     <Timer id="bannerTimer" duration="5" />
+    <Timer id="toastTimer" duration="2.5" />
     <Timer id="clockTimer" duration="30" repeat="true" />
   </children>
 </component>

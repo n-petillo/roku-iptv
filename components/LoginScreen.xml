@@ -1,18 +1,44 @@
 <?xml version="1.0" encoding="utf-8"?>
+<!-- 1e: centred sign-in form over the warm wash. Up/Down moves, OK edits a field or signs in. -->
 <component name="LoginScreen" extends="Group">
   <interface>
     <field id="creds" type="assocarray" />
     <field id="autoLogin" type="boolean" onChange="onAutoLogin" />
     <field id="loggedIn" type="assocarray" />
+    <!-- {error, network}: set when an automatic sign-in fails, so MainScene can show the error screen -->
+    <field id="autoFailed" type="assocarray" />
   </interface>
   <script type="text/brightscript" uri="pkg:/source/utils.brs" />
+  <script type="text/brightscript" uri="pkg:/components/ui.brs" />
   <script type="text/brightscript" uri="pkg:/components/LoginScreen.brs" />
   <children>
-    <Label text="IPTV Live" translation="[660,180]" width="600" horizAlign="center" font="font:LargeBoldSystemFont" color="0xFFFFFFFF" />
-    <Label text="Sign in with your Xtream Codes account" translation="[560,260]" width="800" horizAlign="center" font="font:SmallSystemFont" color="0x9AA4B5FF" />
-    <Rectangle translation="[560,340]" width="800" height="420" color="0x141A26FF" />
-    <LabelList id="form" translation="[600,380]" itemSize="[720,80]" itemSpacing="[0,16]" numRows="4"
-               color="0xD5DBE5FF" focusedColor="0xFFFFFFFF" focusBitmapBlendColor="0x2E7CF6FF" vertFocusAnimationStyle="floatingFocus" />
-    <Label id="status" translation="[560,800]" width="800" horizAlign="center" wrap="true" font="font:SmallSystemFont" color="0xFF6B6BFF" />
+    <Rectangle width="1920" height="1080" color="0x0C0C0CFF" />
+    <Poster uri="pkg:/images/wash_bottom.png" translation="[0,660]" width="1920" height="420" />
+
+    <Label text="SIGN IN" translation="[660,150]" color="0xFFFFFF59">
+      <Font role="font" uri="pkg:/fonts/ABCNormal-Normal.otf" size="20" />
+    </Label>
+    <Label text="FedSmokerTV" translation="[660,178]" color="0xFFFFFFFF">
+      <Font role="font" uri="pkg:/fonts/ABCNormal-Normal.otf" size="64" />
+    </Label>
+    <Label text="Use your Xtream Codes account." translation="[660,266]" color="0xFFFFFF99">
+      <Font role="font" uri="pkg:/fonts/ABCNormal-Normal.otf" size="26" />
+    </Label>
+
+    <FormField id="fServer" translation="[660,356]" label="Server URL" placeholder="http://ipservz.net" />
+    <FormField id="fUser" translation="[660,468]" label="Username" />
+    <FormField id="fPass" translation="[660,580]" label="Password" secure="true" />
+
+    <PillButton id="signIn" translation="[660,720]" text="Sign in" />
+    <Label id="savedNote" text="Saved on this TV only" translation="[860,720]" height="72" vertAlign="center" color="0xFFFFFF59">
+      <Font role="font" uri="pkg:/fonts/ABCNormal-Normal.otf" size="20" />
+    </Label>
+    <Label id="status" translation="[660,820]" width="900" wrap="true" maxLines="2" color="0xD78A6AFF">
+      <Font role="font" uri="pkg:/fonts/ABCNormal-Normal.otf" size="22" />
+    </Label>
+
+    <Label id="version" translation="[96,1022]" color="0xFFFFFF59">
+      <Font role="font" uri="pkg:/fonts/ABCNormal-Normal.otf" size="18" />
+    </Label>
   </children>
 </component>

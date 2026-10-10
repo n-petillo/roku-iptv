@@ -1,7 +1,8 @@
-# IPTV Live (Roku)
+# FedSmokerTV (Roku)
 
 Simple Roku live-TV player for Xtream Codes accounts. Sign in once, then browse in three panels:
-**categories | channels | preview + EPG** (now / next).
+**categories | channels | preview + EPG** (now / next). Star your go-to channels and the app opens
+on a **Favorites** grid.
 
 ---
 
@@ -22,24 +23,24 @@ You do this once per Roku. It takes about 5 minutes and you need a computer or p
 
 ### 2. Download the app
 
-Go to this repo's **[Releases](../../releases/latest)** page and download **`iptv-live.zip`**.
+Go to this repo's **[Releases](../../releases/latest)** page and download **`fedsmokertv.zip`**.
 Don't unzip it.
 
 ### 3. Upload it to the TV
 
 1. In a browser on the same network, open the Roku's IP: `http://192.168.1.50`
 2. Log in with username **`rokudev`** and the password from step 1.
-3. Click **Upload**, pick `iptv-live.zip`, then click **Install with zip**.
-4. The app launches on the TV. It now also appears on the Roku home screen as **IPTV Live**.
+3. Click **Upload**, pick `fedsmokertv.zip`, then click **Install with zip**.
+4. The app launches on the TV. It now also appears on the Roku home screen as **FedSmokerTV**.
 
 ### 4. Sign in
 
-Enter your **Server URL** (e.g. `http://provider.example:8080`), **Username** and **Password**,
+The **Server URL** is prefilled with `http://ipservz.net` (select it to change it). Enter your **Username** and **Password**,
 then select **Sign in**. They're saved on that TV, so next time it opens straight to Live TV.
 
 ### Updating
 
-Download the newer `iptv-live.zip` from Releases and repeat **step 3**. Your login is kept.
+Download the newer `fedsmokertv.zip` from Releases and repeat **step 3**. Your login is kept.
 
 ### Good to know
 
@@ -51,17 +52,24 @@ Download the newer `iptv-live.zip` from Releases and repeat **step 3**. Your log
 
 ## Remote controls
 
-| Where       | Key        | Action                                  |
-|-------------|------------|-----------------------------------------|
-| Login       | OK         | Edit field / Sign in                    |
-| Panels      | Up/Down    | Move in list                            |
-| Panels      | Left/Right | Switch between Categories and Channels  |
-| Channels    | OK         | Play in preview; OK again = fullscreen  |
-| Panels      | `*`        | Log out / change account                |
-| Panels      | Back       | Exit app (asks first)                   |
-| Fullscreen  | Up/Down    | Previous / next channel in category     |
-| Fullscreen  | OK / `*`   | Show / hide now-next banner             |
-| Fullscreen  | Back       | Return to panels                        |
+| Where       | Key        | Action                                              |
+|-------------|------------|-----------------------------------------------------|
+| Login       | Up/Down    | Move between fields                                 |
+| Login       | OK         | Edit field / Sign in                                |
+| Favorites   | Arrows     | Move between tiles; Up from the top row = tabs      |
+| Favorites   | OK         | Watch fullscreen                                    |
+| Favorites   | ▶‖         | Remove favorite                                     |
+| Panels      | Left/Right | Switch between Categories and Channels              |
+| Channels    | OK         | Play in preview; OK again = fullscreen              |
+| Channels    | ▶‖         | Add / remove favorite                               |
+| Anywhere    | `*`        | Log out / change account                            |
+| Panels      | Back       | Back to Favorites (or exit if you have none)        |
+| Fullscreen  | Up/Down    | Previous / next channel (in that list)              |
+| Fullscreen  | OK / `*`   | Show / hide now-next card                           |
+| Fullscreen  | ▶‖         | Add / remove favorite                               |
+| Fullscreen  | Back       | Return to where you came from                       |
+
+Favorites are saved on each TV, per account.
 
 ## Troubleshooting
 
@@ -90,10 +98,10 @@ make test                            # same tests on the device (see telnet 8085
 Bump `major_version` / `minor_version` / `build_version` in `manifest`, then:
 
 ```bash
-git tag v1.0.1 && git push origin v1.0.1
+git tag v1.1.1 && git push origin v1.1.1
 ```
 
-GitHub Actions lints, tests, builds `iptv-live.zip` and attaches it to a new Release.
+GitHub Actions lints, tests, builds `fedsmokertv.zip` and attaches it to a new Release.
 
 ### Layout
 
@@ -101,9 +109,12 @@ GitHub Actions lints, tests, builds `iptv-live.zip` and attaches it to a new Rel
 manifest                 app metadata
 source/main.brs          entry point
 source/utils.brs         pure helpers (URLs, EPG parsing, time), unit tested in source/tests.brs
-components/MainScene     switches between Login and Live screens
-components/LoginScreen   Xtream sign-in, saves credentials to the device registry
-components/LiveScreen    3-panel UI, preview/fullscreen player, EPG
+components/MainScene     switches between Login, Live and Error screens
+components/LoginScreen   Xtream sign-in form, saves credentials to the device registry
+components/ErrorScreen   "Cannot reach server" with Retry / Edit account
+components/LiveScreen    favorites grid, 3-panel UI, preview/fullscreen player, EPG, favorites
 components/ApiTask       background HTTP + JSON for player_api.php
-components/ChannelItem   channel row (number, logo, name)
+components/*Item, FavTile list rows / tiles; FormField, PillButton, KeyHints shared controls
+components/ui.brs        palette + font helpers (Runway ink, white opacity ladder, ABC Normal)
+fonts/, images/          ABC Normal, 9-patch shapes and icons (regenerate: tools/make_images.py)
 ```

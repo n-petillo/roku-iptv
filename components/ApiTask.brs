@@ -4,7 +4,7 @@ end sub
 
 sub runTask()
     req = m.top.request
-    res = { kind: req.kind, ctx: req.ctx, ok: false, error: "", data: invalid }
+    res = { kind: req.kind, ctx: req.ctx, ok: false, error: "", netError: false, data: invalid }
 
     timeout = 20000
     if req.timeoutMs <> invalid then timeout = req.timeoutMs
@@ -47,7 +47,7 @@ function httpGet(url as string, timeoutMs as integer, res as object) as dynamic
     ut.InitClientCertificates()
     ut.EnableEncodings(true)
     ut.RetainBodyOnError(true)
-    ut.AddHeader("User-Agent", "Mozilla/5.0 (Roku) IPTVLive/1.0")
+    ut.AddHeader("User-Agent", "Mozilla/5.0 (Roku) FedSmokerTV/1.1")
 
     if not ut.AsyncGetToString()
         res.error = "Could not start request."
@@ -57,12 +57,14 @@ function httpGet(url as string, timeoutMs as integer, res as object) as dynamic
     if msg = invalid
         ut.AsyncCancel()
         res.error = "Server timed out."
+        res.netError = true
         return invalid
     end if
     code = msg.GetResponseCode()
     if code <> 200
         if code < 0
             res.error = "Cannot reach server (" + msg.GetFailureReason() + ")."
+            res.netError = true
         else if code = 401 or code = 403
             res.error = "Wrong username or password."
         else
@@ -84,10 +86,7 @@ function buildCategories(json as dynamic) as object
             end if
         end for
     end if
-    ' "All" goes last so startup never pulls the full (often huge) list
-    all = root.CreateChild("ContentNode")
-    all.id = "all"
-    all.title = "All Channels"
+    ' LiveScreen adds the pinned Favorites and All channels entries
     return root
 end function
 

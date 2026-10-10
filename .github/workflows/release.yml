@@ -28,8 +28,8 @@ jobs:
         if: startsWith(github.ref, 'refs/tags/')
         env:
           GH_TOKEN: ${{ github.token }}
-        run: gh release create "$GITHUB_REF_NAME" out/iptv-live.zip --title "IPTV Live $GITHUB_REF_NAME" --generate-notes
+        run: gh release create "$GITHUB_REF_NAME" out/fedsmokertv.zip --title "FedSmokerTV $GITHUB_REF_NAME" --generate-notes
       - uses: actions/upload-artifact@v4
         with:
-          name: iptv-live
-          path: out/iptv-live.zip
+          name: fedsmokertv
+          path: out/fedsmokertv.zip
