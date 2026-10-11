@@ -12,7 +12,9 @@ zip:
 
 install: zip
 	@test -n "$(ROKU_IP)" || (echo "Set ROKU_IP=<your roku ip>"; exit 1)
-	@curl -sS --digest --user "rokudev:$(ROKU_PASS)" -F "mysubmit=Install" -F "archive=@$(ZIP)" \
+# Expect: 100-continue makes curl finish the digest handshake before uploading; without it the Roku
+# answers 401 mid-upload and drops the connection ("Send failure: Broken pipe").
+	@curl -sS --digest --user "rokudev:$(ROKU_PASS)" -H "Expect: 100-continue" -F "mysubmit=Install" -F "archive=@$(ZIP)" \
 		"http://$(ROKU_IP)/plugin_install" | grep -oE "Install Success|Identical to previous version|Install Failure[^<]*|Unauthorized" | head -1
 
 # Runs utils tests on the device; read results with: telnet $(ROKU_IP) 8085

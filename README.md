@@ -100,8 +100,8 @@ Same layout as Roku, adapted for remotes without ▶‖ or `*` keys:
 | Fullscreen  | Up/Down or CH+/CH−       | Previous / next channel                        |
 | Fullscreen  | OK                       | Show / hide now-next card                      |
 | Panels      | Back                     | Back to Favorites (or exit if you have none)   |
-| Favorites   | Back                     | Exit or **Log out**                            |
-| Anywhere    | Menu (if your remote has one) | Log out / change account                  |
+| Favorites   | Back                     | Exit, **Refresh** or **Log out**               |
+| Anywhere    | Menu (if your remote has one) | **Refresh** / Log out / change account    |
 
 ---
 
@@ -117,7 +117,7 @@ Same layout as Roku, adapted for remotes without ▶‖ or `*` keys:
 | Panels      | Left/Right | Switch between Categories and Channels              |
 | Channels    | OK         | Play in preview; OK again = fullscreen              |
 | Channels    | ▶‖         | Add / remove favorite                               |
-| Anywhere    | `*`        | Log out / change account                            |
+| Anywhere    | `*`        | **Refresh channels & guide** / Log out              |
 | Panels      | Back       | Back to Favorites (or exit if you have none)        |
 | Fullscreen  | Up/Down    | Previous / next channel (in that list)              |
 | Fullscreen  | OK / `*`   | Show / hide now-next card                           |
@@ -126,8 +126,14 @@ Same layout as Roku, adapted for remotes without ▶‖ or `*` keys:
 
 Favorites are saved on each TV, per account.
 
+**Refresh** reloads the channel list and programme guide from the provider and reconnects the channel
+that's playing. What's on screen stays put until the new list arrives; if the server can't be reached
+you get a message and keep the old data.
+
 ## Troubleshooting
 
+- **Channels missing, renamed or stuck, guide out of date**: use **Refresh** (`*` on Roku; Menu or Back from
+  Favorites on Android).
 - **"Wrong username or password" / "Cannot reach server"**: check the server URL includes the port (`:8080` etc.) and `http://` vs `https://`.
 - **A channel won't play**: the app tries HLS (`.m3u8`) then MPEG-TS (`.ts`). Some channels are just down at the provider.
 - **No programme info**: the provider has no EPG for that channel.

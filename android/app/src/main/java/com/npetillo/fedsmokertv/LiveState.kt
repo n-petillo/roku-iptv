@@ -105,6 +105,9 @@ class LiveState(
         private set
     var toast by mutableStateOf<String?>(null)
         private set
+    /** false: failure toast, drawn without the check mark. */
+    var toastOk by mutableStateOf(true)
+        private set
     var dialog by mutableStateOf<DialogState?>(null)
         private set
 
@@ -114,6 +117,7 @@ class LiveState(
     private var toastJob: Job? = null
     private var clockJob: Job? = null
     private val jobs = ArrayList<Job>()
+    private var refreshing = false // "Refresh" request in flight
 
     private val listener = object : Player.Listener {
         override fun onPlaybackStateChanged(state: Int) = onPlayerState(state)
@@ -231,24 +235,66 @@ class LiveState(
     private fun loadCategories() {
         launch {
             when (val r = api.categories(creds)) {
-                is ApiResult.Ok -> onCategories(r.value)
+                is ApiResult.Ok -> onCategories(r.value, null)
                 is ApiResult.Err ->
                     if (r.netError) onFatal("Cannot reach server", null) else onFatal("Couldn't load channels", r.error)
             }
         }
     }
 
-    private fun onCategories(list: List<Category>) {
+    /** keepId: category to stay on (refresh); null uses pendingCat. */
+    private fun onCategories(list: List<Category>, keepId: String?) {
         val all = ArrayList<Category>(list.size + 2)
         all.add(Category(FAV, "Favorites"))
         all.add(Category(ALL, "All channels"))
         all.addAll(list)
         cats = all
-        var idx = pendingCat
+        var idx = if (keepId != null) all.indexOfFirst { it.id == keepId } else pendingCat
         if (idx < 0 || idx >= all.size) idx = firstRealCat()
         pendingCat = -1
         catIdx = idx
         loadChannels()
+    }
+
+    // ---------- refresh ----------
+
+    /**
+     * Re-fetches the category list, the shown channels and the guide, and reconnects the playing stream.
+     * Current data stays on screen until the new category list arrives; a failure only shows a toast.
+     */
+    private fun refresh() {
+        if (refreshing) return
+        refreshing = true
+        launch {
+            val r = api.categories(creds)
+            refreshing = false
+            when (r) {
+                is ApiResult.Ok -> onRefreshed(r.value)
+                is ApiResult.Err -> showToast("Couldn't refresh. ${r.error}", ok = false)
+            }
+        }
+    }
+
+    private fun onRefreshed(list: List<Category>) {
+        val keepCat = curCatId
+        chanCache.clear()
+        catCounts.clear()
+        epg.clear()
+        epgQueue.clear()
+        onCategories(list, keepCat)
+        // still on the same category: fetch its channels again; the old list stays until they arrive
+        if (keepCat != null && keepCat == curCatId && keepCat != FAV) fetchChannels(keepCat)
+
+        if (mode == Mode.Home) queueEpg(favs.map { it.id }) else shownChans?.let { queueEpgAround(it, chanIdx) }
+        playing?.let {
+            ext = creds.ext
+            retries = 0
+            failed = false
+            startStream()
+            epgQueue.addFirst(it.id)
+            pumpEpg()
+        }
+        showToast("Channels & guide refreshed")
     }
 
     private fun onCatFocused() {
@@ -288,8 +334,12 @@ class LiveState(
             return
         }
         loadedChans = null
-        if (!chanLoading.add(cat.id)) return
-        val catId = cat.id
+        fetchChannels(cat.id)
+    }
+
+    /** Loads a category's channels; when shown, stays on the focused channel if it's still listed (refresh). */
+    private fun fetchChannels(catId: String) {
+        if (!chanLoading.add(catId)) return
         launch {
             val r = api.streams(creds, if (catId == ALL) null else catId)
             chanLoading.remove(catId)
@@ -297,14 +347,24 @@ class LiveState(
                 is ApiResult.Ok -> {
                     chanCache[catId] = r.value
                     catCounts[catId] = r.value.size
+                    val p = playing
+                    if (p != null && playSrc == catId) {
+                        val i = r.value.indexOfFirst { it.id == p.id }
+                        if (i >= 0) playIdx = i
+                    }
                     if (catId == curCatId) {
+                        val keepId = focusedChannel()?.id
                         loadedChans = r.value
-                        showChannels(0)
+                        showChannels(maxOf(0, r.value.indexOfFirst { it.id == keepId }))
                     }
                 }
                 is ApiResult.Err -> if (catId == curCatId) {
-                    loadedChans = emptyList()
-                    chansError = "Couldn't load channels.\n" + r.error
+                    if (!loadedChans.isNullOrEmpty()) {
+                        showToast("Couldn't refresh channels. ${r.error}", ok = false) // keep the old list
+                    } else {
+                        loadedChans = emptyList()
+                        chansError = "Couldn't load channels.\n" + r.error
+                    }
                 }
             }
         }
@@ -351,8 +411,9 @@ class LiveState(
         }
     }
 
-    private fun showToast(text: String) {
+    private fun showToast(text: String, ok: Boolean = true) {
         toast = text
+        toastOk = ok
         toastJob?.cancel()
         toastJob = scope.launch {
             delay(2500)
@@ -567,6 +628,7 @@ class LiveState(
                 when (d.buttons[d.idx]) {
                     "Exit" -> { stopPlayback(); onExit() }
                     "Log out" -> { stopPlayback(); onLogout() }
+                    "Refresh" -> refresh()
                 }
             }
             else -> {}
@@ -574,11 +636,11 @@ class LiveState(
     }
 
     private fun exitDialog() = showDialog(
-        DialogState("exit", "Exit FedSmokerTV?", "Signed in to ${creds.server} as ${creds.username}", listOf("Exit", "Cancel", "Log out")),
+        DialogState("exit", "Exit FedSmokerTV?", "Signed in to ${creds.server} as ${creds.username}", listOf("Exit", "Cancel", "Refresh", "Log out")),
     )
 
     private fun accountDialog() = showDialog(
-        DialogState("logout", "Account", "Signed in to ${creds.server} as ${creds.username}", listOf("Log out", "Cancel")),
+        DialogState("options", "Options", "Signed in to ${creds.server} as ${creds.username}", listOf("Refresh", "Log out", "Cancel")),
     )
 
     // ---------- keys ----------

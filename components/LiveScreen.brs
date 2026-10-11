@@ -1,5 +1,5 @@
 sub init()
-    for each id in ["header", "brand", "liveTag", "tabs", "clock", "headRule", "home", "favTitle", "favCount", "favGrid", "panels", "cats", "catSkel", "chansTitle", "chans", "chanSkel", "chansMsg", "favHint", "infoChan", "infoTitle", "infoTime", "infoLeft", "progTrack", "progFill", "infoDesc", "nextBox", "nextRows", "player", "vmask", "liveBadge", "unavail", "unavailWhy", "playerMsg", "banner", "bClock", "surfUp", "surfDown", "bNum", "bCol", "bName", "bTitle", "bStart", "bTrack", "bFill", "bEnd", "bRule", "bNext", "footer", "hints", "toast", "toastBg", "toastText", "catTimer", "epgTimer", "bannerTimer", "toastTimer", "clockTimer"]
+    for each id in ["header", "brand", "liveTag", "tabs", "clock", "headRule", "home", "favTitle", "favCount", "favGrid", "panels", "cats", "catSkel", "chansTitle", "chans", "chanSkel", "chansMsg", "favHint", "infoChan", "infoTitle", "infoTime", "infoLeft", "progTrack", "progFill", "infoDesc", "nextBox", "nextRows", "player", "vmask", "liveBadge", "unavail", "unavailWhy", "playerMsg", "banner", "bClock", "surfUp", "surfDown", "bNum", "bCol", "bName", "bTitle", "bStart", "bTrack", "bFill", "bEnd", "bRule", "bNext", "footer", "hints", "toast", "toastBg", "toastIcon", "toastText", "keySink", "catTimer", "epgTimer", "bannerTimer", "toastTimer", "clockTimer"]
         m[id] = m.top.FindNode(id)
     end for
     m.p = Pal()
@@ -33,6 +33,7 @@ sub init()
     m.retries = 0
     m.failed = false
     m.dialog = invalid
+    m.refreshing = false   ' "Refresh channels & guide" request in flight
 
     m.liveTag.translation = [96 + TextWidth(m.brand) + 28, 60]
     buildSkeletons()
@@ -278,7 +279,13 @@ sub onTaskResult(evt as object)
     task = entry.task
 
     if res.kind = "categories"
-        if res.ok then onCategories(task.content) else onCategoriesFailed(res)
+        if res.ctx.refresh = true
+            onRefreshed(res, task.content)
+        else if res.ok
+            onCategories(task.content, invalid)
+        else
+            onCategoriesFailed(res)
+        end if
     else if res.kind = "streams"
         catId = res.ctx.catId
         m.chanLoading.Delete(catId)
@@ -286,10 +293,14 @@ sub onTaskResult(evt as object)
             m.chanCache[catId] = task.content
             cat = m.catNodes[catId]
             if cat <> invalid then cat.ShortDescriptionLine1 = task.content.GetChildCount().ToStr()
-            if catId = m.curCatId then showChannels(task.content, 0)
+            if catId = m.curCatId then swapChannels(task.content)
         else if catId = m.curCatId
-            m.chanSkel.visible = false
-            m.chansMsg.text = "Couldn't load channels." + Chr(10) + res.error
+            if m.chans.content <> invalid and m.chans.content.GetChildCount() > 0
+                showToast("Couldn't refresh channels. " + res.error, false)   ' keep the old list
+            else
+                m.chanSkel.visible = false
+                m.chansMsg.text = "Couldn't load channels." + Chr(10) + res.error
+            end if
         end if
     else if res.kind = "epg"
         sid = res.ctx.streamId
@@ -315,7 +326,8 @@ sub loadCategories()
 end sub
 
 ' Category list: Favorites (pinned), All channels, then the provider's categories.
-sub onCategories(root as object)
+' keepId: category to stay on (refresh); invalid uses m.pendingCat.
+sub onCategories(root as object, keepId as dynamic)
     fav = CreateObject("roSGNode", "ContentNode")
     fav.id = "fav"
     fav.title = "Favorites"
@@ -335,6 +347,7 @@ sub onCategories(root as object)
     m.catSkel.visible = false
     m.cats.content = root
     idx = m.pendingCat
+    if keepId <> invalid then idx = indexOfId(root, keepId)
     if idx < 0 or idx >= root.GetChildCount() then idx = firstRealCat()   ' -1 / -2: first real category
     m.pendingCat = -1
     m.cats.jumpToItem = idx
@@ -348,6 +361,62 @@ sub onCategoriesFailed(res as object)
         m.top.fatal = { heading: "Couldn't load channels", message: res.error }
     end if
 end sub
+
+' ---------- refresh ----------
+
+' Re-fetches the category list, the shown channels and the guide, and reconnects the playing stream.
+' Current data stays on screen until the new category list arrives; a failure only shows a toast.
+sub refreshAll()
+    if m.refreshing then return
+    m.refreshing = true
+    request("categories", { action: "get_live_categories" }, { refresh: true })
+end sub
+
+sub onRefreshed(res as object, root as object)
+    m.refreshing = false
+    if not res.ok
+        showToast("Couldn't refresh. " + res.error, false)
+        return
+    end if
+    keepCat = m.curCatId
+    m.chanCache = {}
+    m.epgCache = {}
+    m.epgQueue = []
+    onCategories(root, keepCat)
+    ' still on the same category: fetch its channels again; the old list stays until they arrive
+    if keepCat <> invalid and keepCat = m.curCatId and keepCat <> "fav" and m.chanLoading[keepCat] <> true
+        m.chanLoading[keepCat] = true
+        params = { action: "get_live_streams" }
+        if keepCat <> "all" then params.category_id = keepCat
+        request("streams", params, { catId: keepCat }, 60000)
+    end if
+
+    if m.mode = "home"
+        queueFavEpg()
+    else if m.chans.content <> invalid
+        queueEpgAround(m.chans.content, m.chans.itemFocused)
+    end if
+    renderInfo()
+    if m.playing <> invalid
+        m.ext = credsExt()
+        m.retries = 0
+        m.failed = false
+        m.global.playingId = m.playing.id
+        startStream()
+        m.epgQueue.Unshift(m.playing.id)
+        pumpEpg()
+    end if
+    showToast("Channels & guide refreshed", true)
+    updateHints()
+end sub
+
+' Index of the child with this id, or -1.
+function indexOfId(list as object, id as string) as integer
+    for i = 0 to list.GetChildCount() - 1
+        if list.GetChild(i).id = id then return i
+    end for
+    return -1
+end function
 
 sub onCatFocused()
     ' the user moved on: drop any pending "focus channels" for another category
@@ -402,6 +471,25 @@ sub loadChannels()
     params = { action: "get_live_streams" }
     if cat.id <> "all" then params.category_id = cat.id
     request("streams", params, { catId: cat.id }, 60000)
+end sub
+
+' A category's channels arrived: show them, staying on the focused channel when it's still listed (refresh),
+' and keep zapping on the new list if the playing channel came from the old one.
+sub swapChannels(content as object)
+    old = m.chans.content
+    if m.playing <> invalid and m.playList <> invalid and old <> invalid and m.playList.IsSameNode(old)
+        i = indexOfId(content, m.playing.id)
+        if i >= 0
+            m.playList = content
+            m.playIndex = i
+            m.playing = content.GetChild(i)
+        end if
+    end if
+    idx = 0
+    ch = focusedChannel()
+    if ch <> invalid then idx = indexOfId(content, ch.id)
+    if idx < 0 then idx = 0
+    showChannels(content, idx)
 end sub
 
 sub showChannels(content as object, idx as integer)
@@ -508,7 +596,7 @@ sub toggleFav(ch as dynamic)
         m.playIndex = i
         if m.playList.GetChildCount() = 0 then m.playList = invalid
     end if
-    if added then showToast("Added " + ch.title + " to Favorites") else showToast("Removed " + ch.title + " from Favorites")
+    if added then showToast("Added " + ch.title + " to Favorites", true) else showToast("Removed " + ch.title + " from Favorites", true)
 
     if m.mode = "home"
         if m.favs.Count() = 0
@@ -532,7 +620,9 @@ sub toggleFav(ch as dynamic)
     updateHints()
 end sub
 
-sub showToast(text as string)
+' ok = false: no check mark (failures).
+sub showToast(text as string, ok as boolean)
+    m.toastIcon.visible = ok
     SetText(m.toastText, text)
     w = 64 + TextWidth(m.toastText) + 28
     m.toastBg.width = w
@@ -887,7 +977,7 @@ sub enterFullscreen()
     m.liveBadge.visible = false
     setPlayerVisible(true)
     fullLayout()
-    m.top.SetFocus(true)
+    m.keySink.SetFocus(true)
     showBanner()
 end sub
 
@@ -994,9 +1084,9 @@ sub updateHints()
     h = []
     if m.mode = "home"
         if m.homeFocus = "tabs"
-            h = [{ k: "← →", t: "Choose" }, { k: "OK", t: "Open" }, { k: "*", t: "Log out" }, { k: "Back", t: "Exit" }]
+            h = [{ k: "← →", t: "Choose" }, { k: "OK", t: "Open" }, { k: "*", t: "Refresh · Log out" }, { k: "Back", t: "Exit" }]
         else
-            h = [{ k: "← → ↑ ↓", t: "Move" }, { k: "OK", t: "Watch fullscreen" }, { k: "pp", t: "Remove favorite" }, { k: "*", t: "Log out" }, { k: "Back", t: "Exit" }]
+            h = [{ k: "← → ↑ ↓", t: "Move" }, { k: "OK", t: "Watch fullscreen" }, { k: "pp", t: "Remove favorite" }, { k: "*", t: "Refresh · Log out" }, { k: "Back", t: "Exit" }]
         end if
     else if m.mode = "panels"
         if m.chans.HasFocus()
@@ -1007,9 +1097,9 @@ sub updateHints()
                 if m.failed and m.playing <> invalid and m.playing.id = ch.id then ok = "Try again"
                 if m.global.favIds[ch.id] = true then fav = "Remove favorite"
             end if
-            h = [{ k: "← →", t: "Switch panel" }, { k: "OK", t: ok }, { k: "pp", t: fav }, { k: "*", t: "Log out" }, { k: "Back", t: back }]
+            h = [{ k: "← →", t: "Switch panel" }, { k: "OK", t: ok }, { k: "pp", t: fav }, { k: "*", t: "Refresh · Log out" }, { k: "Back", t: back }]
         else
-            h = [{ k: "← →", t: "Switch panel" }, { k: "OK", t: "Open" }, { k: "*", t: "Log out" }, { k: "Back", t: back }]
+            h = [{ k: "← →", t: "Switch panel" }, { k: "OK", t: "Open" }, { k: "*", t: "Refresh · Log out" }, { k: "Back", t: back }]
         end if
     end if
     s = FormatJson(h)
@@ -1020,14 +1110,14 @@ end sub
 
 ' ---------- dialogs ----------
 
-sub showDialog(kind as string, title as string, message as string, buttons as object)
+sub showDialog(title as string, message as string, buttons as object)
     dlg = CreateObject("roSGNode", "StandardMessageDialog")
     dlg.title = title
     dlg.message = [message]
     dlg.buttons = buttons
     dlg.ObserveField("buttonSelected", "onDialogButton")
     dlg.ObserveField("wasClosed", "onDialogClosed")
-    m.dialogKind = kind
+    m.dialogButtons = buttons
     m.dialogChoice = -1
     if m.mode = "panels" and m.cats.HasFocus()
         m.dialogReturn = m.cats
@@ -1036,7 +1126,7 @@ sub showDialog(kind as string, title as string, message as string, buttons as ob
     else if m.mode = "home" and m.homeFocus = "grid"
         m.dialogReturn = m.favGrid
     else
-        m.dialogReturn = m.top
+        m.dialogReturn = m.keySink   ' tabs
     end if
     m.dialog = dlg
     m.top.GetScene().dialog = dlg
@@ -1050,19 +1140,22 @@ end sub
 ' Acts after the dialog is gone, so screen swaps don't race the dialog's own focus restore.
 sub onDialogClosed()
     m.dialog = invalid
-    if m.dialogChoice = 0
-        m.dialogChoice = -1
+    choice = ""
+    if m.dialogChoice >= 0 then choice = m.dialogButtons[m.dialogChoice]
+    m.dialogChoice = -1
+    if choice = "Exit" or choice = "Log out"
         m.player.control = "stop"
-        if m.dialogKind = "exit"
-            m.top.exitApp = true
-        else if m.dialogKind = "logout"
-            m.top.logout = true
-        end if
+        if choice = "Exit" then m.top.exitApp = true else m.top.logout = true
         return
     end if
     m.dialogReturn.SetFocus(true)
     updateHints()
+    if choice = refreshLabel() then refreshAll()
 end sub
+
+function refreshLabel() as string
+    return "Refresh channels & guide"
+end function
 
 ' ---------- keys ----------
 
@@ -1088,11 +1181,11 @@ function onKeyEvent(key as string, press as boolean) as boolean
         if m.mode = "panels" and m.favs.Count() > 0
             showHome()
         else
-            showDialog("exit", "Exit FedSmokerTV?", "", ["Exit", "Cancel"])
+            showDialog("Exit FedSmokerTV?", "", ["Exit", "Cancel"])
         end if
         return true
     else if key = "options"
-        showDialog("logout", "Account", "Signed in to " + m.creds.server, ["Log out", "Cancel"])
+        showDialog("Options", "Signed in to " + m.creds.server, [refreshLabel(), "Log out", "Cancel"])
         return true
     end if
 
@@ -1117,7 +1210,7 @@ function onKeyEvent(key as string, press as boolean) as boolean
         if key = "up"
             m.homeFocus = "tabs"
             m.tabIdx = 0
-            m.top.SetFocus(true)
+            m.keySink.SetFocus(true)
             renderTabs()
             updateHints()
             return true

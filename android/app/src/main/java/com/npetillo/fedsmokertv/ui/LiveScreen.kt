@@ -85,7 +85,7 @@ fun LiveScreen(s: LiveState) {
         if (s.mode != Mode.Home) PlayerArea(s)
         if (s.mode == Mode.Full && s.banner) Banner(s)
         if (s.mode != Mode.Full) Footer(hints(s))
-        s.toast?.let { Toast(it) }
+        s.toast?.let { Toast(it, s.toastOk) }
         s.dialog?.let { d ->
             Box(Modifier.fillMaxSize().background(P.ink85)) {
                 Column(Modifier.align(Alignment.Center).width(860.dp).rounded(P.ink, 12).outline(P.w15, 12).padding(56.dp)) {
@@ -110,8 +110,8 @@ fun LiveScreen(s: LiveState) {
 private fun hints(s: LiveState): List<Pair<String, String>> {
     val back = if (s.favs.isNotEmpty()) "Favorites" else "Exit"
     return when {
-        s.mode == Mode.Home && s.homeOnTabs -> listOf("← →" to "Choose", "OK" to "Open", "Back" to "Exit or log out")
-        s.mode == Mode.Home -> listOf("← → ↑ ↓" to "Move", "OK" to "Watch fullscreen", "Hold OK" to "Remove favorite", "Back" to "Exit or log out")
+        s.mode == Mode.Home && s.homeOnTabs -> listOf("← →" to "Choose", "OK" to "Open", "Back" to "Exit · refresh · log out")
+        s.mode == Mode.Home -> listOf("← → ↑ ↓" to "Move", "OK" to "Watch fullscreen", "Hold OK" to "Remove favorite", "Back" to "Exit · refresh · log out")
         s.chansFocused -> {
             val ch = s.focusedChannel()
             val ok = if (ch != null && s.failed && s.playing?.id == ch.id) "Try again" else "Play · again for fullscreen"
@@ -175,15 +175,18 @@ private fun Star(color: Color, modifier: Modifier = Modifier) {
     Image(painterResource(R.drawable.star), null, modifier.box(26, 26), colorFilter = ColorFilter.tint(color))
 }
 
+/** ok = false: failure, no check mark. */
 @Composable
-private fun Toast(text: String) {
+private fun Toast(text: String, ok: Boolean) {
     Box(Modifier.box(1920, 1080)) {
         Row(
             Modifier.align(Alignment.TopEnd).offset(x = (-96).dp, y = 160.dp).height(64.dp).rounded(P.w12, 12).padding(start = 24.dp, end = 28.dp),
             verticalAlignment = Alignment.CenterVertically,
         ) {
-            Image(painterResource(R.drawable.check), null, Modifier.box(24, 24), colorFilter = ColorFilter.tint(P.w100))
-            Spacer(Modifier.width(16.dp))
+            if (ok) {
+                Image(painterResource(R.drawable.check), null, Modifier.box(24, 24), colorFilter = ColorFilter.tint(P.w100))
+                Spacer(Modifier.width(16.dp))
+            }
             Txt(text, 24, P.w100, Modifier.widthIn(max = 900.dp))
         }
     }
